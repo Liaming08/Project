@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calcolo Area & Perimetro - Applicazione</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <h1>Calcolo Area & Perimetro</h1>
+            <form id="areaForm">
+                <label for="shape">Scegli una figura:</label>
+                <select id="shape" name="shape">
+                    <option value="quadrato">Quadrato</option>
+                    <option value="rettangolo">Rettangolo</option>
+                    <option value="triangolo">Triangolo</option>
+                    <option value="cerchio">Cerchio</option>
+                </select>
+
+                <div id="dimensions">
+                    <div class="dimension-input">
+                        <label for="dimension1" id="dimension1-label">Lato:</label>
+                        <input type="number" id="dimension1" name="dimension1" min="0.01" step="any" required>
+                    </div>
+                    <div class="dimension-input" id="dimension2-container" style="display: none;">
+                        <label for="dimension2" id="dimension2-label">Dimensione 2:</label>
+                        <input type="number" id="dimension2" name="dimension2" min="0.01" step="any">
+                    </div>
+                </div>
+                
+                <div class="unit-selector">
+                    <label for="unit">Unità di misura:</label>
+                    <select id="unit" name="unit">
+                        <option value="cm">Centimetri</option>
+                        <option value="m">Metri</option>
+                        <option value="mm">Millimetri</option>
+                    </select>
+                </div>
+
+                <button type="submit">Calcola</button>
+            </form>
+            <div id="result" class="result"></div>
+        </div>
+        
+        <div class="right-panel">
+            <div id="shapeViewer" class="shape-viewer">
+                <canvas id="shapeCanvas"></canvas>
+            </div>
+            <div class="history-container">
+                <h3>Cronologia Calcoli</h3>
+                <div id="calcHistory" class="calc-history"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const shapeSelect = document.getElementById('shape');
+    const dimension1Label = document.getElementById('dimension1-label');
+    const dimension2Label = document.getElementById('dimension2-label');
+    const dimension2Container = document.getElementById('dimension2-container');
+    const dimension2Input = document.getElementById('dimension2');
+    const resultDiv = document.getElementById('result');
+
+    const labels = {
+        quadrato: ['Lato:', null],
+        rettangolo: ['Base:', 'Altezza:'],
+        triangolo: ['Base:', 'Altezza:'],
+        cerchio: ['Raggio:', null]
+    };
+
+    function updateLabels() {
+        const shape = shapeSelect.value;
+        dimension1Label.textContent = labels[shape][0];
+        if (labels[shape][1]) {
+            dimension2Label.textContent = labels[shape][1];
+            dimension2Container.style.display = 'block';
+            dimension2Input.required = true;
+        } else {
+            dimension2Container.style.display = 'none';
+            dimension2Input.required = false;
+            dimension2Input.value = '';
+        }
+    }
+
+    shapeSelect.addEventListener('change', updateLabels);
+    window.addEventListener('DOMContentLoaded', updateLabels);
+
+    function calcolaAreaPerimetro(shape, d1, d2) {
+        let area = 0, perimetro = 0;
+        switch (shape) {
+            case 'quadrato':
+                area = d1 * d1;
+                perimetro = 4 * d1;
+                break;
+            case 'rettangolo':
+                area = d1 * d2;
+                perimetro = 2 * (d1 + d2);
+                break;
+            case 'triangolo':
+                area = (d1 * d2) / 2;
+                perimetro = d1 + d2 + Math.sqrt(d1*d1 + d2*d2);
+                break;
+            case 'cerchio':
+                area = Math.PI * d1 * d1;
+                perimetro = 2 * Math.PI * d1;
+                break;
+        }
+        return {
+            area: area,
+            perimetro: perimetro
+        };
+    }
+
+    function drawShape(shape, d1, d2) {
+        const canvas = document.getElementById('shapeCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        const center = { x: canvas.width/2, y: canvas.height/2 };
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        const maxSize = Math.min(canvas.width, canvas.height) * 0.7;
+        
+        switch(shape) {
+            case 'quadrato':
+                const size = maxSize;
+                ctx.beginPath();
+                ctx.strokeRect(center.x - size/2, center.y - size/2, size, size);
+                break;
+                
+            case 'rettangolo':
+                const width = maxSize;
+                const height = maxSize * 0.6;
+                ctx.beginPath();
+                ctx.strokeRect(center.x - width/2, center.y - height/2, width, height);
+                break;
+                
+            case 'triangolo':
+                ctx.beginPath();
+                ctx.moveTo(center.x, center.y - maxSize/2);
+                ctx.lineTo(center.x - maxSize/2, center.y + maxSize/2);
+                ctx.lineTo(center.x + maxSize/2, center.y + maxSize/2);
+                ctx.closePath();
+                ctx.stroke();
+                break;
+                
+            case 'cerchio':
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, maxSize/2, 0, Math.PI * 2);
+                ctx.stroke();
+                break;
+        }
+        
+        ctx.fillStyle = 'rgba(99, 102, 241, 0.1)';
+        ctx.fill();
+    }
+
+    function addToHistory(shape, area, perimetro, unit) {
+        const historyDiv = document.getElementById('calcHistory');
+        const entry = document.createElement('div');
+        entry.className = 'history-entry';
+        entry.innerHTML = `
+            <strong>${shape}</strong>
+            <span>Area: ${area.toFixed(2)} ${unit}²</span>
+            <span>Perimetro: ${perimetro.toFixed(2)} ${unit}</span>
+        `;
+        historyDiv.insertBefore(entry, historyDiv.firstChild);
+    }
+
+    document.getElementById('areaForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const shape = shapeSelect.value;
+        const unit = document.getElementById('unit').value;
+        const d1 = parseFloat(document.getElementById('dimension1').value);
+        const d2 = dimension2Input.required ? parseFloat(dimension2Input.value) : 0;
+
+        if (isNaN(d1) || (dimension2Input.required && isNaN(d2))) {
+            resultDiv.innerHTML = "<span class='error'>Inserisci valori validi.</span>";
+            return;
+        }
+
+        const { area, perimetro } = calcolaAreaPerimetro(shape, d1, d2);
+        let nomeFigura = shape.charAt(0).toUpperCase() + shape.slice(1);
+
+        resultDiv.innerHTML = `
+            <strong>${nomeFigura}</strong><br>
+            Area: <span>${area.toFixed(2)} ${unit}²</span><br>
+            Perimetro: <span>${perimetro.toFixed(2)} ${unit}</span>
+        `;
+
+        drawShape(shape, d1, d2);
+        addToHistory(nomeFigura, area, perimetro, unit);
+    });
+
+    function updateShapeColors(shape) {
+        document.body.setAttribute('data-shape', shape);
+        const viewer = document.getElementById('shapeViewer');
+        viewer.className = 'shape-viewer shape-' + shape;
+        const canvas = document.getElementById('shapeCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const colors = {
+            quadrato: '#4ade80',
+            rettangolo: '#60a5fa',
+            triangolo: '#fbbf24',
+            cerchio: '#fb5d5d'
+        };
+        
+        ctx.strokeStyle = colors[shape];
+        ctx.fillStyle = colors[shape] + '20'; // Aggiunge trasparenza
+    }
+    
+    shapeSelect.addEventListener('change', (e) => {
+        const shape = e.target.value;
+        updateShapeColors(shape);
+        drawShape(shape, 1, 1);
+    });
+    
+    // Aggiorna il colore iniziale
+    window.addEventListener('DOMContentLoaded', () => {
+        updateLabels();
+        updateShapeColors('quadrato');
+        drawShape('quadrato', 1, 1);
+    });
+
+    window.addEventListener('resize', () => {
+        if (shapeSelect.value) {
+            drawShape(shapeSelect.value, 1, 1);
+        }
+    });
+
+    shapeSelect.addEventListener('change', () => {
+        drawShape(shapeSelect.value, 1, 1);
+    });
+</script>
+</body>
+</html>
